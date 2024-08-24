@@ -120,7 +120,7 @@ public class Transform {
     }
 
     public static String trimSlashes(String string) {
-        return string == null ? null : separatorsToUnix(trimLeadingSlash(trimEndingSlash(string)));
+        return string == null ? null : trimLeadingSlash(trimEndingSlash(string));
     }
 
     public static String trimLeadingSlash(String string) {
