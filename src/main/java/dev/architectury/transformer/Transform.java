@@ -54,15 +54,15 @@ public class Transform {
     public static String getUniqueIdentifier() {
         return System.getProperty(BuiltinProperties.UNIQUE_IDENTIFIER);
     }
-
+    
     public static boolean isInjectInjectables() {
         return System.getProperty(BuiltinProperties.INJECT_INJECTABLES, "true").equals("true");
     }
-
+    
     public static String[] getClasspath() {
         return System.getProperty(BuiltinProperties.COMPILE_CLASSPATH, "true").split(File.pathSeparator);
     }
-
+    
     public static void runTransformers(Path input, Path output, List<Transformer> transformers) throws Exception {
         TransformerContext context = new SimpleTransformerContext(args -> {throw new IllegalStateException();},
                 true, false, true);
@@ -87,30 +87,30 @@ public class Transform {
             }
         }, "Transformed jar with " + transformers.size() + " transformer(s)");
     }
-
+    
     public static void runTransformers(TransformerContext context, ClasspathProvider classpath, String input, FileAccess output, List<Transformer> transformers)
             throws Exception {
         runTransformers(context, ReadClasspathProvider.of(classpath), input, output, transformers);
     }
-
+    
     public static void runTransformers(TransformerContext context, ReadClasspathProvider classpath, String input, FileAccess output, List<Transformer> transformers)
             throws Exception {
         runTransformers(context, classpath, input, output, transformers, false);
     }
-
+    
     public static void runTransformers(TransformerContext context, ReadClasspathProvider classpath, String input, FileAccess output, List<Transformer> transformers,
             boolean nested) throws Exception {
         try (SimpleTransformerHandler handler = new SimpleTransformerHandler(classpath, context, nested)) {
             handler.handle(input, output, transformers);
         }
     }
-
+    
     public static void logTime(DoThing doThing, String task) throws Exception {
         measureTime(doThing, (duration) -> {
             Logger.info(task + " in " + formatDuration(duration));
         });
     }
-
+    
     public static void measureTime(DoThing doThing, Consumer<Duration> measured) throws Exception {
         long current = System.nanoTime();
         doThing.doThing();
@@ -118,11 +118,11 @@ public class Transform {
         Duration duration = Duration.ofNanos(finished - current);
         measured.accept(duration);
     }
-
+    
     public static String trimSlashes(String string) {
         return string == null ? null : trimLeadingSlash(trimEndingSlash(string));
     }
-
+    
     public static String trimLeadingSlash(String string) {
         if (string.startsWith(File.separator)) {
             return string.substring(File.separator.length());
@@ -131,7 +131,7 @@ public class Transform {
         }
         return string;
     }
-
+    
     public static String trimEndingSlash(String string) {
         if (string.endsWith(File.separator)) {
             return string.substring(string.length() - File.separator.length());
@@ -140,12 +140,12 @@ public class Transform {
         }
         return string;
     }
-
+    
     @FunctionalInterface
     public interface DoThing {
         void doThing() throws Exception;
     }
-
+    
     /*
      * Copyright (C) 2008 The Guava Authors
      *
@@ -161,13 +161,13 @@ public class Transform {
      */
     public static String formatDuration(Duration duration) {
         long nanos = duration.toNanos();
-
+        
         TimeUnit unit = chooseUnit(nanos);
         double value = (double) nanos / NANOSECONDS.convert(1, unit);
-
+        
         return formatCompact4Digits(value) + " " + abbreviate(unit);
     }
-
+    
     private static void copyDirectory(Path src, Path dest) throws IOException {
         if (Files.exists(dest)) {
             try (Stream<Path> walk = Files.walk(dest)) {
@@ -186,11 +186,11 @@ public class Transform {
             });
         }
     }
-
+    
     private static String formatCompact4Digits(double value) {
         return String.format(Locale.ROOT, "%.4g", value);
     }
-
+    
     private static TimeUnit chooseUnit(long nanos) {
         if (DAYS.convert(nanos, NANOSECONDS) > 0) {
             return DAYS;
@@ -212,7 +212,7 @@ public class Transform {
         }
         return NANOSECONDS;
     }
-
+    
     private static String abbreviate(TimeUnit unit) {
         switch (unit) {
             case NANOSECONDS:

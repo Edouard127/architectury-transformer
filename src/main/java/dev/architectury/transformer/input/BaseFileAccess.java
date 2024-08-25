@@ -23,7 +23,6 @@
 
 package dev.architectury.transformer.input;
 
-import dev.architectury.transformer.Transform;
 import dev.architectury.transformer.util.ClosableChecker;
 import org.jetbrains.annotations.Nullable;
 
@@ -40,15 +39,15 @@ import java.util.stream.Stream;
 public abstract class BaseFileAccess extends ClosableChecker implements FileAccess {
     private final Map<String, byte[]> cache = new HashMap<>();
     private final boolean shouldCache;
-
+    
     public BaseFileAccess(boolean shouldCache) {
         this.shouldCache = shouldCache;
     }
-
+    
     protected void clearCache() {
         this.cache.clear();
     }
-
+    
     @Override
     public void handle(Consumer<String> action) throws IOException {
         validateCloseState();
@@ -58,15 +57,15 @@ public abstract class BaseFileAccess extends ClosableChecker implements FileAcce
             }
         }
     }
-
+    
     private byte[] cacheRead(String path) {
         if (this.shouldCache) {
             return cache.computeIfAbsent(path, this::_cacheRead);
         }
-
+        
         return _cacheRead(path);
     }
-
+    
     private byte[] _cacheRead(String path) {
         try {
             return read(path);
@@ -74,7 +73,7 @@ public abstract class BaseFileAccess extends ClosableChecker implements FileAcce
             throw new UncheckedIOException(e);
         }
     }
-
+    
     @Override
     public void handle(BiConsumer<String, byte[]> action) throws IOException {
         validateCloseState();
@@ -84,7 +83,7 @@ public abstract class BaseFileAccess extends ClosableChecker implements FileAcce
             }
         }
     }
-
+    
     @Override
     public boolean addFile(String path, byte[] bytes) throws IOException {
         validateCloseState();
@@ -93,16 +92,16 @@ public abstract class BaseFileAccess extends ClosableChecker implements FileAcce
         clearCache();
         return true;
     }
-
+    
     @Override
     public byte[] modifyFile(String path, byte[] bytes) throws IOException {
         return addFile(path, bytes) ? bytes : null;
     }
-
+    
     @Override
     public byte[] modifyFile(String path, UnaryOperator<byte[]> action) throws IOException {
         validateCloseState();
-
+        
         if (exists(path)) {
             byte[] bytes = read(path);
             try {
@@ -112,27 +111,27 @@ public abstract class BaseFileAccess extends ClosableChecker implements FileAcce
             }
             return modifyFile(path, bytes);
         }
-
+        
         return null;
     }
-
+    
     @Override
     public void close() throws IOException {
         closeAndValidate();
         clearCache();
     }
-
+    
     @Override
     public byte[] getFile(String path) throws IOException {
         validateCloseState();
         return exists(path) ? cacheRead(path) : null;
     }
-
+    
     protected abstract boolean exists(String path) throws IOException;
-
+    
     protected abstract byte[] read(String path) throws IOException;
-
+    
     protected abstract void write(String path, byte[] bytes) throws IOException;
-
+    
     protected abstract Stream<String> walk(@Nullable String path) throws IOException;
 }
