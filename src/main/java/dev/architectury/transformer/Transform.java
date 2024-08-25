@@ -141,14 +141,6 @@ public class Transform {
         return string;
     }
 
-    public static String separatorsToUnix(String res) {
-        if (File.separatorChar=='\\') {
-            return res.replace('\\', '/');
-        }
-
-        return res;
-    }
-
     @FunctionalInterface
     public interface DoThing {
         void doThing() throws Exception;

@@ -80,8 +80,7 @@ public abstract class BaseFileAccess extends ClosableChecker implements FileAcce
         validateCloseState();
         try (Stream<String> stream = walk(null)) {
             for (String path : stream.collect(Collectors.toList())) {
-                String sanitized = Transform.separatorsToUnix(path);
-                action.accept(sanitized, cacheRead(sanitized));
+                action.accept(path, cacheRead(path));
             }
         }
     }
