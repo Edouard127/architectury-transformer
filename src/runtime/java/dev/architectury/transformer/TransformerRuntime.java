@@ -67,45 +67,45 @@ public class TransformerRuntime {
     public static final Set<File> TRANSFORM_FILES = new HashSet<>();
     public static final Map<String, ToTransformData> CLASSES_TO_TRANSFORM = new HashMap<>();
     private static ReadClasspathProvider classpathProvider;
-
+    
     private static boolean isDebugOutputEnabled() {
         return System.getProperty(BuiltinProperties.DEBUG_OUTPUT, "false").equals("true");
     }
-
+    
     public static class ToTransformData {
         private final List<Transformer> transformers;
         private final FileAccess originalSource;
         private final FileAccess debugOut;
-
+        
         public ToTransformData(List<Transformer> transformers, FileAccess originalSource, FileAccess debugOut) {
             this.transformers = transformers;
             this.originalSource = originalSource;
             this.debugOut = debugOut;
         }
-
+        
         public List<Transformer> getTransformers() {
             return transformers;
         }
-
+        
         public FileAccess getOriginalSource() {
             return originalSource;
         }
-
+        
         public FileAccess getDebugOut() {
             return debugOut;
         }
     }
-
+    
     public static void main(String[] args) throws Throwable {
         Logger.info("Architectury Runtime " + TransformerRuntime.class.getPackage().getImplementationVersion());
         List<String> argsList = new ArrayList<>(Arrays.asList(args));
         applyProperties();
-
+        
         // We start our journey of achieving hell
         Path configPath = Paths.get(System.getProperty(RUNTIME_TRANSFORM_CONFIG));
         String configText = new String(Files.readAllBytes(configPath), StandardCharsets.UTF_8);
         List<PathWithTransformersEntry> toTransform = parsePathWithTransformersEntries(configText);
-
+        
         AtomicInteger i = new AtomicInteger();
         Map<Path, DirectoryFileAccess> debugOuts = new ConcurrentHashMap<>();
         for (PathWithTransformersEntry entry : toTransform) {
@@ -167,10 +167,10 @@ public class TransformerRuntime {
                     Logger.debug("Appended Launch Argument: " + Arrays.toString(a));
                 }, false, true, true), classpathProvider, entry.getPath().toString(), new RuntimeFileAccess(classRedefineCache, outputInterface, debugOut), entry.getTransformers());
             }
-
+            
             tmpJar.toFile().deleteOnExit();
             populateAddUrl().accept(tmpJar.toUri().toURL());
-
+            
             new PathModifyListener(entry.getPath(), path -> {
                 try {
                     try (OpenedFileAccess outputInterface = OpenedFileAccess.ofJar(tmpJar)) {
@@ -206,20 +206,20 @@ public class TransformerRuntime {
                 }
             });
         }
-
+        
         List<String> cp = new ArrayList<>(Arrays.asList(System.getProperty("java.class.path", "").split(File.pathSeparator)));
         for (Map.Entry<Path, PathWithTransformersEntry> tmpJar : tmpJars) {
             cp.add(tmpJar.getKey().toAbsolutePath().toString());
         }
         removeDuplicates(cp, tmpJars);
         System.setProperty("java.class.path", String.join(File.pathSeparator, cp));
-
+        
         Path mainClassPath = Paths.get(System.getProperty(MAIN_CLASS));
         String mainClass = new String(Files.readAllBytes(mainClassPath), StandardCharsets.UTF_8);
         MethodHandle handle = MethodHandles.publicLookup().findStatic(Class.forName(mainClass), "main", MethodType.methodType(void.class, String[].class));
         handle.invokeExact((String[]) argsList.toArray(new String[0]));
     }
-
+    
     private static void removeDuplicates(List<String> cpList, List<Map.Entry<Path, PathWithTransformersEntry>> tmpJars) throws IOException {
         List<Set<String>> tmpModules = new ArrayList<>();
         for (Map.Entry<Path, PathWithTransformersEntry> tmpJar : tmpJars) {
@@ -228,6 +228,7 @@ public class TransformerRuntime {
                 og.handle(path -> {
                     if (path.endsWith(".class")) {
                         String sanitized = path.replace(File.separatorChar, '/');
+                        
                         // Get package name, i.e. "dev/architectury/transformer/TransformerRuntime.class" -> "dev.architectury.transformer"
                         String packageName = Transform.trimLeadingSlash(sanitized).substring(0, Transform.trimLeadingSlash(sanitized).lastIndexOf('/')).replace('/', '.');
                         modules.add(packageName);
@@ -237,7 +238,7 @@ public class TransformerRuntime {
                 Logger.debug("Temporary jar [%s] contains packages: %s", tmpJar.getKey(), String.join(", ", modules));
             }
         }
-
+        
         cpList.removeIf(cp -> {
             try {
                 Path cpPath = Paths.get(cp);
@@ -267,11 +268,11 @@ public class TransformerRuntime {
             } catch (Throwable e) {
                 e.printStackTrace();
             }
-
+            
             return false;
         });
     }
-
+    
     private static List<PathWithTransformersEntry> parsePathWithTransformersEntries(String configText) throws IOException {
         Map<Path, List<TransformerPair>> map;
         try (TransformersReader reader = new TransformersReader(new StringReader(configText))) {
@@ -284,7 +285,7 @@ public class TransformerRuntime {
                         .collect(Collectors.toList())))
                 .collect(Collectors.toList());
     }
-
+    
     private static void redefineClasses(String input, Map<String, byte[]> redefine) throws Exception {
         Class<?>[] allLoadedClasses = TransformerAgent.getInstrumentation().getAllLoadedClasses();
         List<ClassDefinition> definitions = new ArrayList<>();
@@ -307,7 +308,7 @@ public class TransformerRuntime {
             }, "Redefined " + definitions.size() + " class(es) from " + input);
         }
     }
-
+    
     private static void applyProperties() throws IOException {
         Path propertiesPath = Paths.get(System.getProperty(PROPERTIES));
         Properties properties = new Properties();
@@ -319,7 +320,7 @@ public class TransformerRuntime {
         }
         properties.forEach((o, o2) -> System.setProperty((String) o, (String) o2));
     }
-
+    
     private static void doInstrumentationStuff() {
         boolean prepare = true;
         TransformHandler handler;
@@ -336,7 +337,7 @@ public class TransformerRuntime {
         Instrumentation instrumentation = TransformerAgent.getInstrumentation();
         instrumentation.addTransformer(new ClassTransformerFileAccess(handler, CLASSES_TO_TRANSFORM::get), instrumentation.isRedefineClassesSupported());
     }
-
+    
     private static Consumer<URL> populateAddUrl() {
         // Java 8, we can just add via reflection
         if (ClassLoader.getSystemClassLoader() instanceof URLClassLoader) {
@@ -359,18 +360,18 @@ public class TransformerRuntime {
             }
         };
     }
-
+    
     private static class PathWithTransformersEntry {
         private final Path path;
         private final File file;
         private final List<Transformer> transformers;
-
+        
         public PathWithTransformersEntry(Path path, List<Transformer> transformers) {
             this.path = path;
             this.file = path.toFile();
             this.transformers = transformers;
         }
-
+        
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
@@ -378,20 +379,20 @@ public class TransformerRuntime {
             PathWithTransformersEntry that = (PathWithTransformersEntry) o;
             return file.equals(that.file);
         }
-
+        
         @Override
         public int hashCode() {
             return file.hashCode();
         }
-
+        
         public Path getPath() {
             return path;
         }
-
+        
         public File toFile() {
             return file;
         }
-
+        
         public List<Transformer> getTransformers() {
             return transformers;
         }
